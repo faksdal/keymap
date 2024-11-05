@@ -115,7 +115,7 @@ int keyboard::readkey(void)
 	if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
 		die("read");
 	if(c != '\0'){
-		if(iscntrl(c)){
+		if(iscntrl(c)){. // try to do in a while loop
 			printf("Control - Level 1: %d\r\n", c);
 			while(keyPressed()){					// this might work!
 				if(read(STDIN_FILENO, &buf[0], 1) != -1){
