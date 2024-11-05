@@ -4,13 +4,13 @@
 
 # Add inputs and outputs from these tool invocations to the build variables 
 CPP_SRCS += \
-../keymap.cpp 
+../keyboard.cpp 
 
 CPP_DEPS += \
-./keymap.d 
+./keyboard.d 
 
 OBJS += \
-./keymap.o 
+./keyboard.o 
 
 
 # Each subdirectory must supply rules for building sources it contributes
@@ -25,7 +25,7 @@ OBJS += \
 clean: clean--2e-
 
 clean--2e-:
-	-$(RM) ./keymap.d ./keymap.o
+	-$(RM) ./keyboard.d ./keyboard.o
 
 .PHONY: clean--2e-
 
