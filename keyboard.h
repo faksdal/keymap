@@ -23,8 +23,9 @@ class keyboard{
 					ESCAPE_SEQ_4
 	};
 
-	int		fd;
-	struct termios originalTermios;
+	int				fd;
+	struct termios	originalTermios;
+	keyState		state;
 
 	void	die(const char* _s);
 	void	disableRawMode(void);

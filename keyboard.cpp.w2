@@ -21,7 +21,7 @@
 #include "keymap.h"
 #include "keyboard.h"
 
-//struct termios orig_termios;
+struct termios orig_termios;
 
 
 int addLogEntry(const std::string _fileName, const std::string _logEntry)
@@ -65,7 +65,7 @@ void keyboard::die(const char* _s)
 
 void keyboard::disableRawMode(void)
 {
-	if (tcsetattr(fd, TCSAFLUSH, &originalTermios) == -1)
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &originalTermios) == -1)
 		die("tcsetattr");
 }
 
@@ -73,7 +73,7 @@ void keyboard::disableRawMode(void)
 
 void  keyboard::enableRawMode(void)
 {
-	if (tcgetattr(fd, &originalTermios) == -1)
+	if (tcgetattr(STDIN_FILENO, &originalTermios) == -1)
 		die("tcgetattr");
 
 	//atexit(disableRawMode);
@@ -85,7 +85,7 @@ void  keyboard::enableRawMode(void)
 	raw.c_lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
 	raw.c_cc[VMIN] = 0;
 	raw.c_cc[VTIME] = 1;
-	if (tcsetattr(fd, TCSAFLUSH, &raw) == -1)
+	if (tcsetattr(STDIN_FILENO, TCSAFLUSH, &raw) == -1)
 		die("tcsetattr");
 }
 
@@ -99,9 +99,9 @@ bool keyboard::keyPressed(void)
 	struct timeval tv = {0, 0};
 	fd_set readfds;
 	FD_ZERO(&readfds);
-	FD_SET(fd, &readfds);
+	FD_SET(STDIN_FILENO, &readfds);
 
-	return select(fd + 1, &readfds, nullptr, nullptr, &tv) == 1;
+	return select(STDIN_FILENO + 1, &readfds, nullptr, nullptr, &tv) == 1;
 }
 
 
@@ -109,32 +109,33 @@ bool keyboard::keyPressed(void)
 int keyboard::readkey(void)
 {
 	char	buf[4];
-	//short	i = 0;
+	short	i = 0;
 
 	char c = '\0';
 
-	if(read(fd, &c, 1) == -1 && errno != EAGAIN)
+	if(read(STDIN_FILENO, &c, 1) == -1 && errno != EAGAIN)
 		die("read");
-
-	state = keyState::NORMAL;
-
 	if(c != '\0'){
 		if(iscntrl(c)){
-			state = keyState::ESCAPE_SEQ_0;
+			// Try to read into buf[] in a while()-loop
 			printf("Control - Level 1: %d\r\n", c);
 			while(keyPressed()){
-				if(read(fd, &buf[0], 1) > /*!=*/ 0){
-					state = keyState::ESCAPE_SEQ_1;
+				while(read(STDIN_FILENO, &buf[i], 1) != -1){
+					printf("Control - Level %d: %d\r\n", i, buf[i]);
+					i++;
+				}
+
+				/*
+				if(read(STDIN_FILENO, &buf[0], 1) != -1){
 					printf("Control - Level 2: %d\r\n", buf[0]);
-					if(read(fd, &buf[1], 1) > /*!=*/ 0){
-						state = keyState::ESCAPE_SEQ_2;
+					if(read(STDIN_FILENO, &buf[1], 1) != -1){
 						printf("Control - Level 3: %d\r\n", buf[1]);
-						if(read(fd, &buf[2], 1) > /*!=*/ 0){
-							state = keyState::ESCAPE_SEQ_3;
+						if(read(STDIN_FILENO, &buf[2], 1) != -1){
 							printf("Control - Level 4: %d\r\n", buf[2]);
-						} // if(read(STDIN_FILENO, &buf[2], 1) != 0){
-					} // if(read(STDIN_FILENO, &buf[1], 1) != 0)
-				} // if(read(STDIN_FILENO, &buf[0], 1) != 0)
+						}
+					}
+				}
+				*/
 			} // while(keyPressed())
 		}
 		else{
@@ -152,10 +153,9 @@ int keyboard::readkey(void)
 int main()
 {
 	int key;
-	int file_descriptor = STDIN_FILENO;
 	bool quit = false;
 
-	keyboard kb(file_descriptor);
+	keyboard kb(STDIN_FILENO);
 
 	while(!quit){
 		key = kb.readkey();
@@ -165,7 +165,7 @@ int main()
 				case 'q':	quit = true;
 							break;
 
-				default:	std::cout << "switch default: key: " << key << "\r\n" << std::flush;
+				default:	std::cout << "key: " << key << "\r\n" << std::flush;
 							break;
 			}
 		}
